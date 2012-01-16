@@ -74,28 +74,23 @@ local ebcdic = "\193\150\64\147\150\149\135\133\107\64\129\150\64\147\164\129"
 .. "\37"
 
 
+for _, v in ipairs(iconv.list()) do
+    print(v)
+end
+
 function check_one(to, from, text)
   print("\n-- Testing conversion from " .. from .. " to " .. to)
-  local cd = iconv.new(to .. "//TRANSLIT", from)
-  assert(cd, "Failed to create a converter object.")
-  local ostr, err = cd:iconv(text)
-
-  if err == iconv.ERROR_INCOMPLETE then
-    print("ERROR: Incomplete input.")
-  elseif err == iconv.ERROR_INVALID then
-    print("ERROR: Invalid input.")
-  elseif err == iconv.ERROR_NO_MEMORY then
-    print("ERROR: Failed to allocate memory.")
-  elseif err == iconv.ERROR_UNKNOWN then
-    print("ERROR: There was an unknown error.")
+  local cd, err = iconv.new(to .. "//TRANSLIT", from)
+  if not cd then
+      error("Failed to create a converter object: "..err)
   end
-  print(ostr)
+  print(cd:iconv(text))
 end
 
 check_one(termcs, "iso-8859-1", iso88591)
-check_one(termcs, "utf8", utf8)
-check_one(termcs, "utf16", utf16)
-check_one(termcs, "EBCDIC-CP-ES", ebcdic)
+check_one(termcs, "utf-8", utf8)
+check_one(termcs, "utf-16", utf16)
+--check_one(termcs, "EBCDIC-CP-ES", ebcdic)
 
 
 -- The library must never crash the interpreter, even if the user tweaks
@@ -106,5 +101,6 @@ assert(e == nil, "Unexpected conversion error")
 local gc = getmetatable(cd).__gc
 gc(cd)
 local _, e = cd:iconv("atenção")
-assert(e == iconv.ERROR_FINALIZED, "Failed to detect double-freed objects")
+assert(e:match "^invalid", "Failed to detect double-freed objects")
 gc(cd)
+-- cc: cc='lua52'
